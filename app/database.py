@@ -39,6 +39,8 @@ class Database:
 
                 created_at TEXT
 
+                summary TEXT
+
             )
             """
         )
@@ -246,6 +248,46 @@ class Database:
         )
 
         self.connection.commit()
+
+    def save_summary(self, session_id, summary):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            UPDATE sessions
+            SET summary = ?
+            WHERE id = ?
+            """,
+            (
+                summary,
+                session_id
+            )
+        )
+
+        self.connection.commit()
+
+    def load_summary(self, session_id):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT summary
+            FROM sessions
+            WHERE id = ?
+            """,
+            (
+                session_id,
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if row:
+            return row["summary"]
+
+        return None
 
     
     def close(self):

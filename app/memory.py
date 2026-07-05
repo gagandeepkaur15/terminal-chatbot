@@ -4,9 +4,10 @@ from app.config import SUMMARY_TRIGGER, WINDOW_SIZE
 
 class MemoryManager:
 
-    def __init__(self):
+    def __init__(self, chatbot):
         self.db = Database()
         self.session_id = self.db.create_session()
+        self.chatbot = chatbot
 
         # Cache conversation in memory for fast access
         self.messages = []
@@ -28,6 +29,9 @@ class MemoryManager:
             content
         )
 
+        if (role == "assistant" and len(self.messages) > SUMMARY_TRIGGER):
+            self.compress_memory()
+
     def get_messages(self):
         return self.messages
 
@@ -37,6 +41,19 @@ class MemoryManager:
         self.messages = self.db.load_messages(
             session_id
         )
+
+        summary = self.db.load_summary(
+            session_id
+        )
+
+        if summary:
+            self.summary_message = {
+                    "role": "system",
+                    "content": summary
+                }
+        else:
+            self.summary_message = None
+            
 
     def new_session(self):
         self.session_id = self.db.create_session()
@@ -72,7 +89,7 @@ class MemoryManager:
 
         return conversation
 
-    def compress_memory(self, chatbot):
+    def compress_memory(self):
 
         if len(self.messages) <= SUMMARY_TRIGGER:
             return
@@ -132,7 +149,8 @@ class MemoryManager:
             messages_to_summarize
         )
 
-        updated_summary = chatbot.generate(
+        # Recursive Summarization: If summary exists previously then we can use it to summarize the new summary and hence only one summary would be maintained.
+        updated_summary = self.chatbot.generate(
             summary_prompt
         )
 
@@ -141,6 +159,11 @@ class MemoryManager:
             "role": "system",
             "content": f"Conversation Summary:\n{updated_summary}"
         }
+
+        self.db.save_summary(
+            self.session_id,
+            self.summary_message["content"]
+        )
 
         # Keep only the recent messages in RAM
         self.messages = recent_messages
