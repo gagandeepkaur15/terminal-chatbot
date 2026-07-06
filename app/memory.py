@@ -53,7 +53,7 @@ class MemoryManager:
                 }
         else:
             self.summary_message = None
-            
+
 
     def new_session(self):
         self.session_id = self.db.create_session()
@@ -167,6 +167,9 @@ class MemoryManager:
 
         # Keep only the recent messages in RAM
         self.messages = recent_messages
+
+    def get_sessions(self):
+        return self.db.get_sessions()
 
     def close(self):
         self.db.close()
